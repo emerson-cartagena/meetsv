@@ -28,7 +28,10 @@ serve(async (req: Request) => {
     const body = await req.json();
     const { token, action, reason } = body;
 
+    console.log("Received request:", { token: token ? token.substring(0, 10) + "..." : "missing", action, reason });
+
     if (!token || !action) {
+      console.error("Missing required fields:", { token: !!token, action: !!action });
       return new Response(
         JSON.stringify({ error: "Missing token or action" }),
         { status: 400 }
@@ -38,18 +41,35 @@ serve(async (req: Request) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Buscar token válido y no utilizado
+    console.log("Searching for token in database...");
     const { data: tokenData, error: tokenError } = await supabase
       .from("booking_tokens")
-      .select("*, booking_id")
+      .select("*")
       .eq("token", token)
       .is("used_at", null)
       .gt("expires_at", new Date().toISOString())
       .single();
 
+    console.log("Token search result:", { 
+      found: !!tokenData, 
+      error: tokenError?.message,
+      tokenFound: tokenData ? {
+        booking_id: tokenData.booking_id,
+        action_type: tokenData.action_type,
+        expires_at: tokenData.expires_at,
+        used_at: tokenData.used_at
+      } : null
+    });
+
     if (tokenError || !tokenData) {
+      console.error("Token validation failed:", { 
+        error: tokenError?.message,
+        hasData: !!tokenData
+      });
       return new Response(
         JSON.stringify({ 
           error: "Invalid, expired, or already used token",
+          details: tokenError?.message || "Token not found or already used",
           success: false 
         }),
         { status: 401 }
@@ -57,10 +77,19 @@ serve(async (req: Request) => {
     }
 
     // Verificar que el action_type coincida
+    console.log("Checking action type match:", { 
+      tokenAction: tokenData.action_type, 
+      requestAction: action,
+      match: tokenData.action_type === action
+    });
+
     if (tokenData.action_type !== action) {
+      console.error("Action type mismatch");
       return new Response(
         JSON.stringify({ 
           error: "Token action type does not match",
+          expected: tokenData.action_type,
+          received: action,
           success: false 
         }),
         { status: 400 }
@@ -68,6 +97,7 @@ serve(async (req: Request) => {
     }
 
     // Obtener la reserva
+    console.log("Fetching booking:", { booking_id: tokenData.booking_id });
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .select("*")
@@ -75,11 +105,21 @@ serve(async (req: Request) => {
       .single();
 
     if (bookingError || !booking) {
+      console.error("Booking not found:", { 
+        booking_id: tokenData.booking_id, 
+        error: bookingError?.message 
+      });
       return new Response(
         JSON.stringify({ error: "Booking not found" }),
         { status: 404 }
       );
     }
+
+    console.log("Booking found:", { 
+      id: booking.id, 
+      attendee: booking.attendee_name,
+      status: booking.status
+    });
 
     // Procesar acción
     if (action === "cancel") {
@@ -202,8 +242,23 @@ serve(async (req: Request) => {
     }
 
     if (action === "reschedule") {
-      // Para reschedule, retornar datos para que el frontend maneje
+      // Para reschedule, marcar token como usado y retornar datos para que el frontend maneje
+      console.log("Processing reschedule action");
+      
+      // Marcar token como usado
+      const { error: updateTokenError } = await supabase
+        .from("booking_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("id", tokenData.id);
+
+      if (updateTokenError) {
+        console.error("Error marking token as used:", updateTokenError);
+      } else {
+        console.log("✓ Token marked as used for reschedule");
+      }
+
       // (el usuario necesita seleccionar la nueva fecha)
+      console.log("Returning booking data for reschedule");
       return new Response(
         JSON.stringify({
           success: true,
@@ -212,6 +267,7 @@ serve(async (req: Request) => {
           old_slot: booking.slot_datetime,
           attendee_name: booking.attendee_name,
           attendee_email: booking.attendee_email,
+          extra_guests: booking.extra_guests,
           message: "Booking ready to reschedule",
         }),
         { status: 200 }
@@ -223,7 +279,10 @@ serve(async (req: Request) => {
       { status: 400 }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error processing request:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : ""
+    });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Internal error",
