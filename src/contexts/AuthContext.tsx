@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Restaurar sesión desde localStorage
-    const stored = localStorage.getItem('meetsv_user')
+    const stored = localStorage.getItem('mycalendar_user')
     if (stored) {
       try {
         setUser(JSON.parse(stored))
@@ -48,12 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(user as User)
-    localStorage.setItem('meetsv_user', JSON.stringify(user))
+    localStorage.setItem('mycalendar_user', JSON.stringify(user))
   }
 
   async function logout() {
     setUser(null)
-    localStorage.removeItem('meetsv_user')
+    localStorage.removeItem('mycalendar_user')
   }
 
   async function register(email: string, password: string) {

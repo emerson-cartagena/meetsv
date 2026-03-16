@@ -84,7 +84,7 @@ export default function BookingPage() {
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
           <Calendar className="text-primary-600" size={22} />
-          <span className="font-bold text-lg text-gray-900">MeetSV</span>
+          <span className="font-bold text-lg text-gray-900">MyCalendar</span>
         </div>
       </header>
 

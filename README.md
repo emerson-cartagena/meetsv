@@ -1,4 +1,4 @@
-# MeetSV
+# MyCalendar
 
 Clone simplificado de Calendly para El Salvador.  
 Stack: **React + Vite + Supabase + Tailwind CSS**, deploy en **Vercel**.
@@ -25,7 +25,7 @@ Stack: **React + Vite + Supabase + Tailwind CSS**, deploy en **Vercel**.
 
 ```bash
 git clone <repo>
-cd meetsv
+cd mycalendar
 npm install
 ```
 

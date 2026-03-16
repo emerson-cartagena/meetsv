@@ -31,7 +31,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <Calendar className="text-primary-600" size={32} />
-          <span className="text-2xl font-bold text-gray-900">MeetSV</span>
+          <span className="text-2xl font-bold text-gray-900">MyCalendar</span>
         </div>
 
         {/* Card */}

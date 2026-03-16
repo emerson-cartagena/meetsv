@@ -1,5 +1,5 @@
 -- ============================================================
---  MeetSV – Schema para Supabase (PostgreSQL)
+--  MyCalendar – Schema para Supabase (PostgreSQL)
 --  Ejecutar en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
@@ -152,10 +152,10 @@ alter publication supabase_realtime add table public.booking_changes;
 -- para crear el usuario admin (reemplaza el hash si quieres otra contraseña):
 --
 -- INSERT INTO public.users (email, password, role)
--- VALUES ('admin@meetsv.com', '$2b$10$wJhrk45QrN7ORnJ6Y34Z3.nXmyXOiH1tMfFSLJe8/ctWGgEWwdZIy', 'admin')
+-- VALUES ('admin@mycalendar.com', '$2b$10$wJhrk45QrN7ORnJ6Y34Z3.nXmyXOiH1tMfFSLJe8/ctWGgEWwdZIy', 'admin')
 -- ON CONFLICT (email) DO UPDATE SET password = '$2b$10$wJhrk45QrN7ORnJ6Y34Z3.nXmyXOiH1tMfFSLJe8/ctWGgEWwdZIy';
 --
--- Usuario: admin@meetsv.com
+-- Usuario: admin@mycalendar.com
 -- Contraseña: admin123
 --
 -- Para generar un nuevo hash de contraseña, ejecuta en terminal:

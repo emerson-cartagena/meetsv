@@ -18,7 +18,7 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition">
           <Calendar className="text-primary-600" size={24} />
-          <span className="font-bold text-lg">MeetSV</span>
+          <span className="font-bold text-lg">MyCalendar</span>
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">
