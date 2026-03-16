@@ -83,7 +83,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
       if (eventData) {
         const { data: ownerData } = await supabase
           .from('users')
-          .select('email')
+          .select('email, full_name')
           .eq('id', eventData.user_id)
           .single()
 
@@ -100,6 +100,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                 },
                 body: JSON.stringify({
                   ownerEmail: ownerData.email,
+                  ownerName: ownerData.full_name || 'Organizador',
                   attendeeName: booking.attendee_name,
                   attendeeEmail: booking.attendee_email,
                   eventTitle: event.title,
@@ -167,7 +168,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
       if (eventData) {
         const { data: ownerData } = await supabase
           .from('users')
-          .select('email')
+          .select('email, full_name')
           .eq('id', eventData.user_id)
           .single()
 
@@ -184,6 +185,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                 },
                 body: JSON.stringify({
                   ownerEmail: ownerData.email,
+                  ownerName: ownerData.full_name || 'Organizador',
                   attendeeName: booking.attendee_name,
                   attendeeEmail: booking.attendee_email,
                   eventTitle: event.title,

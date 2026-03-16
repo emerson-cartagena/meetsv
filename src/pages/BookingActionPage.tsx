@@ -141,7 +141,7 @@ export default function BookingActionPage() {
       try {
         const { data: ownerData } = await supabase
           .from('users')
-          .select('email')
+          .select('email, full_name')
           .eq('id', event.user_id)
           .single()
 
@@ -156,6 +156,7 @@ export default function BookingActionPage() {
               },
               body: JSON.stringify({
                 ownerEmail: ownerData.email,
+                ownerName: ownerData.full_name || 'Organizador',
                 attendeeName: booking.attendee_name,
                 attendeeEmail: booking.attendee_email,
                 eventTitle: event.title,

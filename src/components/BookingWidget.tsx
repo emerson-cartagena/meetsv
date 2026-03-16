@@ -121,7 +121,7 @@ export default function BookingWidget({ event, slots, onBooked, embedded = false
       if (eventData) {
         const { data: ownerData } = await supabase
           .from('users')
-          .select('email')
+          .select('email, full_name')
           .eq('id', eventData.user_id)
           .single()
 
@@ -138,6 +138,7 @@ export default function BookingWidget({ event, slots, onBooked, embedded = false
                 },
                 body: JSON.stringify({
                   ownerEmail: ownerData.email,
+                  ownerName: ownerData.full_name || 'Organizador',
                   attendeeName: form.name.trim(),
                   attendeeEmail: form.email.trim().toLowerCase(),
                   slot: selected.datetime,
