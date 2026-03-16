@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
@@ -99,6 +100,96 @@ serve(async (req: Request) => {
         .from("booking_tokens")
         .update({ used_at: new Date().toISOString() })
         .eq("id", tokenData.id);
+
+      // Enviar notificaciones de cancelación
+      try {
+        // Obtener evento e información del owner
+        const { data: eventData } = await supabase
+          .from("events")
+          .select("user_id, title, location_url")
+          .eq("id", booking.event_id)
+          .single();
+
+        if (eventData) {
+          const { data: ownerData } = await supabase
+            .from("users")
+            .select("email")
+            .eq("id", eventData.user_id)
+            .single();
+
+          if (ownerData && RESEND_API_KEY) {
+            // Notificar al owner (sin botones)
+            await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${RESEND_API_KEY}`,
+              },
+              body: JSON.stringify({
+                from: "noreply@mycalendar.pro",
+                to: ownerData.email,
+                subject: `❌ Cancelación de Reserva - ${eventData.title}`,
+                html: `
+                  <!DOCTYPE html>
+                  <html>
+                  <body style="font-family: Arial, sans-serif; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                      <h2 style="color: #dc3545; margin-bottom: 24px;">❌ Cancelación de Reserva</h2>
+                      <p>La reserva de <strong>${booking.attendee_name}</strong> para <strong>${eventData.title}</strong> ha sido cancelada.</p>
+                      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
+                        <p style="margin: 8px 0;"><strong>Asistente:</strong> ${booking.attendee_name}</p>
+                        <p style="margin: 8px 0;"><strong>Email:</strong> ${booking.attendee_email}</p>
+                        <p style="margin: 8px 0;"><strong>Fecha/Hora:</strong> ${booking.slot_datetime}</p>
+                      </div>
+                      <p style="margin-top: 24px; color: #999; font-size: 12px;">
+                        © 2026 MyCalendar. Todos los derechos reservados.
+                      </p>
+                    </div>
+                  </body>
+                  </html>
+                `,
+              }),
+            });
+
+            // Notificar a los invitados (sin botones)
+            if (booking.extra_guests && booking.extra_guests.length > 0) {
+              for (const guestEmail of booking.extra_guests) {
+                fetch("https://api.resend.com/emails", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${RESEND_API_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    from: "noreply@mycalendar.pro",
+                    to: guestEmail,
+                    subject: `❌ Cancelación de Reunión - ${eventData.title}`,
+                    html: `
+                      <!DOCTYPE html>
+                      <html>
+                      <body style="font-family: Arial, sans-serif; color: #333;">
+                        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                          <h2 style="color: #dc3545; margin-bottom: 24px;">❌ Reunión Cancelada</h2>
+                          <p>La reunión <strong>${eventData.title}</strong> ha sido cancelada.</p>
+                          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
+                            <p style="margin: 8px 0;"><strong>Fecha/Hora original:</strong> ${booking.slot_datetime}</p>
+                          </div>
+                          <p style="margin-top: 24px; color: #999; font-size: 12px;">
+                            © 2026 MyCalendar. Todos los derechos reservados.
+                          </p>
+                        </div>
+                      </body>
+                      </html>
+                    `,
+                  }),
+                }).catch(err => console.error("Error sending guest cancel email:", err));
+              }
+            }
+          }
+        }
+      } catch (emailError) {
+        console.error("Error sending cancellation emails:", emailError);
+      }
 
       return new Response(
         JSON.stringify({ 

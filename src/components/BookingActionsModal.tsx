@@ -107,6 +107,8 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                   reason: reason.trim(),
                   oldSlot: booking.slot_datetime,
                   newSlot: selectedSlot.datetime,
+                  originatedFrom: 'owner',
+                  extraGuests: booking.extra_guests,
                 }),
               }
             )
@@ -187,6 +189,8 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                   type: 'cancel',
                   reason: reason.trim(),
                   slot: booking.slot_datetime,
+                  originatedFrom: 'owner',
+                  extraGuests: booking.extra_guests,
                 }),
               }
             )

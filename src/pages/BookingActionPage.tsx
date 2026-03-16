@@ -134,7 +134,43 @@ export default function BookingActionPage() {
           created_by: event.user_id,
         })
 
-      // TODO: Enviar email de confirmación de reprogramación
+      // Enviar notificación de reprogramación al owner y guests
+      try {
+        const { data: ownerData } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', event.user_id)
+          .single()
+
+        if (ownerData) {
+          await fetch(
+            'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZ2dhaHFmYXBvenlnYWprbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjM1NzEsImV4cCI6MjA4OTIzOTU3MX0.dhtfPeaINYmdMEDKm8t1g-fAQi_3G3OUwOaTl2f-0dw`,
+              },
+              body: JSON.stringify({
+                ownerEmail: ownerData.email,
+                attendeeName: booking.attendee_name,
+                attendeeEmail: booking.attendee_email,
+                eventTitle: event.title,
+                bookingId: booking.id,
+                slot: selectedSlot,
+                locationUrl: event.location_url,
+                type: 'reschedule',
+                oldSlot: booking.slot_datetime,
+                newSlot: selectedSlot,
+                originatedFrom: 'attendee',
+                extraGuests: booking.extra_guests,
+              }),
+            }
+          )
+        }
+      } catch (emailErr) {
+        console.error('Error sending reschedule notification:', emailErr)
+      }
 
       setSuccess(true)
       setBooking({ ...booking, slot_datetime: selectedSlot })

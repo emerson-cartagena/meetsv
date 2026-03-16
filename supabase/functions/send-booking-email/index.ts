@@ -18,6 +18,7 @@ interface RequestBody {
   oldSlot?: string;
   newSlot?: string;
   extraGuests?: string[];
+  originatedFrom?: "attendee" | "owner";
 }
 
 // Generar token seguro
@@ -231,6 +232,7 @@ serve(async (req: Request) => {
       oldSlot = "",
       newSlot = "",
       extraGuests = [],
+      originatedFrom,
     } = body;
 
     if (!ownerEmail || !attendeeName || !attendeeEmail || !eventTitle || !bookingId) {
@@ -270,11 +272,11 @@ serve(async (req: Request) => {
       minute: "2-digit",
     });
 
-    // Generar tokens seguros si es booking
+    // Generar tokens seguros si es booking o owner reschedule
     let cancelLink = "";
     let rescheduleLink = "";
     
-    if (type === "booking") {
+    if (type === "booking" || (originatedFrom === "owner" && type === "reschedule")) {
       // Crear tokens en la BD
       const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       
@@ -344,63 +346,239 @@ serve(async (req: Request) => {
       reason,
     });
 
-    // Enviar correo al attendee
-    const attendeeEmailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "noreply@mycalendar.pro",
-        to: attendeeEmail,
-        subject: `${type === "booking" ? "✓ Confirmación de Reserva" : type === "reschedule" ? "📅 Reserva Reprogramada" : "❌ Reserva Cancelada"} - ${eventTitle}`,
-        html: attendeeEmailContent,
-      }),
-    });
+    // Si originatedFrom === 'attendee' y type === 'reschedule', enviar a owner y guests
+    // en lugar de al attendee
+    if (originatedFrom === "attendee" && type === "reschedule") {
+      console.log("Attendee-initiated reschedule: sending to owner and guests");
 
-    if (!attendeeEmailResponse.ok) {
-      const error = await attendeeEmailResponse.text();
-      throw new Error(`Failed to send attendee email: ${error}`);
-    }
+      // Generar tokens para que el owner pueda cancelar o reprogramar nuevamente
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const cancelToken = generateSecureToken();
+      const rescheduleToken = generateSecureToken();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
 
-    console.log("✓ Email sent to attendee successfully");
+      try {
+        const [cancelResult, rescheduleResult] = await Promise.all([
+          supabase.from("booking_tokens").insert({
+            booking_id: bookingId,
+            token: cancelToken,
+            action_type: "cancel",
+            expires_at: expiresAt.toISOString(),
+          }),
+          supabase.from("booking_tokens").insert({
+            booking_id: bookingId,
+            token: rescheduleToken,
+            action_type: "reschedule",
+            expires_at: expiresAt.toISOString(),
+          }),
+        ]);
 
-    // Enviar emails a invitados adicionales (solo notificación, sin botones)
-    if (type === "booking" && extraGuests && extraGuests.length > 0) {
-      console.log(`Sending guest notification emails to ${extraGuests.length} invitados`);
-      
-      for (const guestEmail of extraGuests) {
-        try {
-          const guestEmailContent = getEmailTemplate("guest-notification", {
-            attendeeName: attendeeName,  // Usar el nombre del que hizo la reserva
-            eventTitle,
-            formattedSlot,
-            locationUrl,
-          });
+        if (cancelResult.error || rescheduleResult.error) {
+          console.error("Error saving owner tokens:", { cancelResult, rescheduleResult });
+        }
 
-          const guestResponse = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-              from: "noreply@mycalendar.pro",
-              to: guestEmail,
-              subject: `📅 Te han invitado a una reunión - ${eventTitle}`,
-              html: guestEmailContent,
-            }),
-          });
+        const ownerCancelLink = `https://mycalendar.pro/booking-action?token=${cancelToken}&action=cancel`;
+        const ownerRescheduleLink = `https://mycalendar.pro/booking-action?token=${rescheduleToken}&action=reschedule`;
 
-          if (guestResponse.ok) {
-            console.log(`✓ Guest notification sent to ${guestEmail}`);
-          } else {
-            const error = await guestResponse.text();
-            console.error(`✗ Failed to send guest email to ${guestEmail}: ${error}`);
+        // Email para el owner CON botones
+        const ownerEmailContent = getEmailTemplate("reschedule", {
+          attendeeName: `${attendeeName} (${attendeeEmail})`,
+          eventTitle,
+          formattedSlot: newSlot || slot,
+          locationUrl,
+          cancelLink: ownerCancelLink,
+          rescheduleLink: ownerRescheduleLink,
+          oldSlot,
+          newSlot: newSlot || slot,
+          reason: `${attendeeName} ha reprogramado la reserva`,
+        });
+
+        // Enviar al owner
+        const ownerEmailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: "noreply@mycalendar.pro",
+            to: ownerEmail,
+            subject: `📅 Reserva Reprogramada - ${eventTitle}`,
+            html: ownerEmailContent,
+          }),
+        });
+
+        if (!ownerEmailResponse.ok) {
+          const error = await ownerEmailResponse.text();
+          console.error(`Failed to send email to owner: ${error}`);
+        } else {
+          console.log("✓ Email sent to owner successfully");
+        }
+
+        // Enviar notificación a invitados SIN botones
+        if (extraGuests && extraGuests.length > 0) {
+          console.log(`Sending reschedule guest notifications to ${extraGuests.length} guests`);
+
+          for (const guestEmail of extraGuests) {
+            try {
+              const guestEmailContent = getEmailTemplate("guest-notification", {
+                attendeeName: attendeeName,
+                eventTitle,
+                formattedSlot: newSlot || slot,
+                locationUrl,
+              });
+
+              const guestResponse = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${RESEND_API_KEY}`,
+                },
+                body: JSON.stringify({
+                  from: "noreply@mycalendar.pro",
+                  to: guestEmail,
+                  subject: `📅 Cambio de horario - ${eventTitle}`,
+                  html: guestEmailContent,
+                }),
+              });
+
+              if (guestResponse.ok) {
+                console.log(`✓ Reschedule notification sent to guest ${guestEmail}`);
+              } else {
+                const error = await guestResponse.text();
+                console.error(`✗ Failed to send reschedule notification to ${guestEmail}: ${error}`);
+              }
+            } catch (guestError) {
+              console.error(`Error sending reschedule notification to ${guestEmail}:`, guestError);
+            }
           }
-        } catch (guestError) {
-          console.error(`Error sending guest email to ${guestEmail}:`, guestError);
+        }
+      } catch (tokenError) {
+        console.error("Error during token generation for owner:", tokenError);
+      }
+    } else if (originatedFrom === "owner" && (type === "cancel" || type === "reschedule")) {
+      console.log(`Owner-initiated ${type}: sending to attendee and guests`);
+
+      // Email al attendee (con o sin botones según el tipo)
+      const attendeeEmailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "noreply@mycalendar.pro",
+          to: attendeeEmail,
+          subject: `${type === "cancel" ? "❌ Reserva Cancelada" : "📅 Reserva Reprogramada"} - ${eventTitle}`,
+          html: attendeeEmailContent,
+        }),
+      });
+
+      if (!attendeeEmailResponse.ok) {
+        const error = await attendeeEmailResponse.text();
+        console.error(`Failed to send ${type} email to attendee: ${error}`);
+      } else {
+        console.log(`✓ ${type} email sent to attendee successfully`);
+      }
+
+      // Enviar notificación a invitados SIN botones
+      if (extraGuests && extraGuests.length > 0) {
+        console.log(`Sending ${type} notifications to ${extraGuests.length} guests`);
+
+        for (const guestEmail of extraGuests) {
+          try {
+            const guestEmailContent = getEmailTemplate("guest-notification", {
+              attendeeName: attendeeName,
+              eventTitle,
+              formattedSlot: type === "cancel" ? slot : newSlot || slot,
+              locationUrl,
+            });
+
+            const guestResponse = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${RESEND_API_KEY}`,
+              },
+              body: JSON.stringify({
+                from: "noreply@mycalendar.pro",
+                to: guestEmail,
+                subject: `${type === "cancel" ? "❌ Reunión Cancelada" : "📅 Cambio de Horario"} - ${eventTitle}`,
+                html: guestEmailContent,
+              }),
+            });
+
+            if (guestResponse.ok) {
+              console.log(`✓ ${type} guest notification sent to ${guestEmail}`);
+            } else {
+              const error = await guestResponse.text();
+              console.error(`✗ Failed to send ${type} notification to ${guestEmail}: ${error}`);
+            }
+          } catch (guestError) {
+            console.error(`Error sending ${type} notification to ${guestEmail}:`, guestError);
+          }
+        }
+      }
+    } else {
+      // Caso por defecto: enviar al attendee (nuevo booking, reschedule sin originatedFrom, cancel sin originatedFrom)
+      const attendeeEmailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "noreply@mycalendar.pro",
+          to: attendeeEmail,
+          subject: `${type === "booking" ? "✓ Confirmación de Reserva" : type === "reschedule" ? "📅 Reserva Reprogramada" : "❌ Reserva Cancelada"} - ${eventTitle}`,
+          html: attendeeEmailContent,
+        }),
+      });
+
+      if (!attendeeEmailResponse.ok) {
+        const error = await attendeeEmailResponse.text();
+        console.error(`Failed to send attendee email: ${error}`);
+      } else {
+        console.log("✓ Email sent to attendee successfully");
+      }
+
+      // Enviar emails a invitados adicionales (solo notificación, sin botones)
+      if (type === "booking" && extraGuests && extraGuests.length > 0) {
+        console.log(`Sending guest notification emails to ${extraGuests.length} invitados`);
+
+        for (const guestEmail of extraGuests) {
+          try {
+            const guestEmailContent = getEmailTemplate("guest-notification", {
+              attendeeName: attendeeName, // Usar el nombre del que hizo la reserva
+              eventTitle,
+              formattedSlot,
+              locationUrl,
+            });
+
+            const guestResponse = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${RESEND_API_KEY}`,
+              },
+              body: JSON.stringify({
+                from: "noreply@mycalendar.pro",
+                to: guestEmail,
+                subject: `📅 Te han invitado a una reunión - ${eventTitle}`,
+                html: guestEmailContent,
+              }),
+            });
+
+            if (guestResponse.ok) {
+              console.log(`✓ Guest notification sent to ${guestEmail}`);
+            } else {
+              const error = await guestResponse.text();
+              console.error(`✗ Failed to send guest email to ${guestEmail}: ${error}`);
+            }
+          } catch (guestError) {
+            console.error(`Error sending guest email to ${guestEmail}:`, guestError);
+          }
         }
       }
     }
