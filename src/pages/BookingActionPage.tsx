@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { CheckCircle, AlertCircle, Calendar, Clock, User, Mail } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { generateSlots, formatSlotDateTime } from '../lib/slots'
@@ -7,7 +7,6 @@ import type { Event, Booking, Slot } from '../types'
 
 export default function BookingActionPage() {
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   
   const token = searchParams.get('token')
   const action = searchParams.get('action')
@@ -171,14 +170,6 @@ export default function BookingActionPage() {
             Error
           </h1>
           <p className="text-gray-600 text-center mb-6">{error}</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate('/login')}
-              className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Ir al Dashboard
-            </button>
-          </div>
         </div>
       </div>
     )
@@ -219,13 +210,6 @@ export default function BookingActionPage() {
           <p className="text-gray-600 text-sm text-center mb-6">
             Se ha enviado una confirmación de cancelación a tu correo.
           </p>
-
-          <button
-            onClick={() => navigate('/')}
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-          >
-            Volver al Inicio
-          </button>
         </div>
       </div>
     )
@@ -272,13 +256,6 @@ export default function BookingActionPage() {
             <p className="text-gray-600 text-sm text-center mb-6">
               Se ha enviado una confirmación de reprogramación a tu correo con los nuevos detalles.
             </p>
-
-            <button
-              onClick={() => navigate('/')}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Volver al Inicio
-            </button>
           </div>
         </div>
       )
