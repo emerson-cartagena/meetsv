@@ -67,7 +67,9 @@ function pad(n: number) {
 
 // Type guard para verificar si es Booking[]
 function isBookingArray(arr: any[]): arr is Booking[] {
-  return arr.length > 0 && 'slot_datetime' in arr[0]
+  if (!Array.isArray(arr) || arr.length === 0) return false
+  const first = arr[0]
+  return typeof first === 'object' && first !== null && 'slot_datetime' in first
 }
 
 /** Genera un slug URL-friendly a partir de un título */
