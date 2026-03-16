@@ -25,6 +25,27 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Validar que el usuario sea el propietario del evento o admin
+  const canManage = user && (user.id === event.user_id || user.role === 'admin')
+
+  if (!canManage) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">Acceso denegado</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="p-4">
+            <p className="text-gray-600 text-sm">No tienes permiso para gestionar esta reserva.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const slots = generateSlots(event, otherBookings.map(b => b.slot_datetime))
   const availableSlots = slots.filter(s => s.available && s.datetime !== booking.slot_datetime)
 

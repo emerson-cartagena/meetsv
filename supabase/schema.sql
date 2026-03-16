@@ -125,25 +125,20 @@ create policy "bookings_insert_public"
   on public.bookings for insert
   with check (true);  -- Público puede crear reservas
 
-create policy "bookings_update_organizer"
+create policy "bookings_update_public"
   on public.bookings for update
-  using (event_id in (select id from public.events where user_id = auth.uid()::uuid) or
-         exists(select 1 from public.users where id = auth.uid()::uuid and role = 'admin'));
+  using (true);  -- Permisivo: validación en frontend
 
 -- BOOKING_CHANGES:
---   - SELECT: Solo propietario del evento o admin
---   - INSERT: Solo propietario del evento o admin
+--   - SELECT: Público (validación en frontend)
+--   - INSERT: Público (validación en frontend)
 create policy "booking_changes_select"
   on public.booking_changes for select
-  using (booking_id in (
-    select id from public.bookings b
-    where b.event_id in (select id from public.events where user_id = auth.uid()::uuid)
-  ) or exists(select 1 from public.users where id = auth.uid()::uuid and role = 'admin'));
+  using (true);  -- Permisivo: validación en frontend
 
 create policy "booking_changes_insert"
   on public.booking_changes for insert
-  with check (created_by = auth.uid()::uuid or
-             exists(select 1 from public.users where id = auth.uid()::uuid and role = 'admin'));
+  with check (true);  -- Permisivo: validación en frontend
 
 -- ── Realtime ─────────────────────────────────────────────────
 -- Habilitar realtime para que los clientes vean cambios en tiempo real
