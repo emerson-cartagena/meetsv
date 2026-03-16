@@ -8,6 +8,8 @@ import type { Booking, Event, Slot } from '../types'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
 interface Props {
   booking: Booking
   event: Event
@@ -94,7 +96,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZ2dhaHFmYXBvenlnYWprbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjM1NzEsImV4cCI6MjA4OTIzOTU3MX0.dhtfPeaINYmdMEDKm8t1g-fAQi_3G3OUwOaTl2f-0dw`,
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify({
                   ownerEmail: ownerData.email,
@@ -178,7 +180,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZ2dhaHFmYXBvenlnYWprbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjM1NzEsImV4cCI6MjA4OTIzOTU3MX0.dhtfPeaINYmdMEDKm8t1g-fAQi_3G3OUwOaTl2f-0dw`,
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 },
                 body: JSON.stringify({
                   ownerEmail: ownerData.email,

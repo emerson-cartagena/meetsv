@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { generateSlots, formatSlotDateTime } from '../lib/slots'
 import type { Event, Booking, Slot } from '../types'
 
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
 export default function BookingActionPage() {
   const [searchParams] = useSearchParams()
   
@@ -42,6 +44,7 @@ export default function BookingActionPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             token,
@@ -149,7 +152,7 @@ export default function BookingActionPage() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZ2dhaHFmYXBvenlnYWprbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjM1NzEsImV4cCI6MjA4OTIzOTU3MX0.dhtfPeaINYmdMEDKm8t1g-fAQi_3G3OUwOaTl2f-0dw`,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
                 ownerEmail: ownerData.email,
