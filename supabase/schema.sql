@@ -69,12 +69,26 @@ create table if not exists public.booking_changes (
   created_at        timestamptz default now()
 );
 
+-- ── Tabla: booking_tokens ────────────────────────────────────────────
+-- Tokens seguros para acciones desde email (cancel/reschedule)
+create table if not exists public.booking_tokens (
+  id               uuid primary key default gen_random_uuid(),
+  booking_id       uuid not null references public.bookings(id) on delete cascade,
+  token            text not null unique,           -- hash aleatorio seguro
+  action_type      text not null check (action_type in ('cancel', 'reschedule')),
+  expires_at       timestamptz not null,           -- válido por 30 días
+  used_at          timestamptz,                    -- NULL hasta que se usa
+  created_at       timestamptz default now()
+);
+
 -- ── Índices útiles ──────────────────────────────────────────
 create index if not exists idx_bookings_event_id on public.bookings(event_id);
 create index if not exists idx_bookings_email on public.bookings(attendee_email);
 create index if not exists idx_events_user_id on public.events(user_id);
 create index if not exists idx_events_slug on public.events(slug);
 create index if not exists idx_booking_changes_booking_id on public.booking_changes(booking_id);
+create index if not exists idx_booking_tokens_token on public.booking_tokens(token);
+create index if not exists idx_booking_tokens_booking_id on public.booking_tokens(booking_id);
 
 -- ── Row Level Security (RLS) ────────────────────────────────
 -- RLS deshabilitado en users (tabla completamente pública en lectura)
@@ -89,6 +103,7 @@ create policy "users_select_public" on public.users
 alter table public.events enable row level security;
 alter table public.bookings enable row level security;
 alter table public.booking_changes enable row level security;
+alter table public.booking_tokens enable row level security;
 
 -- USERS: Sin RLS (validación en frontend con AuthContext)
 
@@ -139,6 +154,16 @@ create policy "booking_changes_select"
 create policy "booking_changes_insert"
   on public.booking_changes for insert
   with check (true);  -- Permisivo: validación en frontend
+
+-- BOOKING_TOKENS:
+--   - SELECT/UPDATE: Público (se accede por token, validación en backend)
+create policy "booking_tokens_select"
+  on public.booking_tokens for select
+  using (true);  -- Público: validación en Edge Function
+
+create policy "booking_tokens_update"
+  on public.booking_tokens for update
+  using (true);  -- Público: validación en Edge Function
 
 -- ── Realtime ─────────────────────────────────────────────────
 -- Habilitar realtime para que los clientes vean cambios en tiempo real
