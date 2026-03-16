@@ -26,6 +26,7 @@ serve(async (req: Request) => {
 
   try {
     const body: RequestBody = await req.json();
+    console.log("Received request body:", body);
 
     const {
       ownerEmail,
@@ -45,6 +46,14 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "RESEND_API_KEY not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 

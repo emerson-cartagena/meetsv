@@ -100,13 +100,13 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                   ownerEmail: ownerData.email,
                   attendeeName: booking.attendee_name,
                   attendeeEmail: booking.attendee_email,
-                  slot: selectedSlot.datetime,
                   eventTitle: event.title,
                   eventId: event.id,
                   locationUrl: eventData.location_url,
                   type: 'reschedule',
                   reason: reason.trim(),
                   oldSlot: booking.slot_datetime,
+                  newSlot: selectedSlot.datetime,
                 }),
               }
             )
