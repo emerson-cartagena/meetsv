@@ -13,7 +13,8 @@ serve(async (req: Request) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
       },
     });
   }
@@ -21,6 +22,10 @@ serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
   }
 
@@ -34,7 +39,13 @@ serve(async (req: Request) => {
       console.error("Missing required fields:", { token: !!token, action: !!action });
       return new Response(
         JSON.stringify({ error: "Missing token or action" }),
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
@@ -72,7 +83,13 @@ serve(async (req: Request) => {
           details: tokenError?.message || "Token not found or already used",
           success: false 
         }),
-        { status: 401 }
+        { 
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
@@ -92,7 +109,13 @@ serve(async (req: Request) => {
           received: action,
           success: false 
         }),
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
@@ -111,7 +134,13 @@ serve(async (req: Request) => {
       });
       return new Response(
         JSON.stringify({ error: "Booking not found" }),
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
@@ -238,7 +267,13 @@ serve(async (req: Request) => {
           booking: booking,
           booking_id: booking.id 
         }),
-        { status: 200 }
+        { 
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
@@ -272,13 +307,25 @@ serve(async (req: Request) => {
           extra_guests: booking.extra_guests,
           message: "Booking ready to reschedule",
         }),
-        { status: 200 }
+        { 
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
     return new Response(
       JSON.stringify({ error: "Unknown action" }),
-      { status: 400 }
+      { 
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   } catch (error) {
     console.error("Error processing request:", {
@@ -289,7 +336,13 @@ serve(async (req: Request) => {
       JSON.stringify({
         error: error instanceof Error ? error.message : "Internal error",
       }),
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   }
 });
