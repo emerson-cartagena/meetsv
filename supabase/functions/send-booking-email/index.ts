@@ -522,6 +522,8 @@ serve(async (req: Request) => {
       }
     } else {
       // Caso por defecto: enviar al attendee (nuevo booking, reschedule sin originatedFrom, cancel sin originatedFrom)
+      console.log("Default flow: sending to attendee, owner, and guests");
+      
       const attendeeEmailResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -541,6 +543,38 @@ serve(async (req: Request) => {
         console.error(`Failed to send attendee email: ${error}`);
       } else {
         console.log("✓ Email sent to attendee successfully");
+      }
+
+      // Enviar notificación al owner SIN botones (para nuevo booking)
+      if (type === "booking") {
+        console.log(`Sending booking notification to owner: ${ownerEmail}`);
+        const ownerNotificationContent = getEmailTemplate("guest-notification", {
+          attendeeName: `${attendeeName} (${attendeeEmail})`,
+          eventTitle,
+          formattedSlot,
+          locationUrl,
+        });
+
+        const ownerEmailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: "noreply@mycalendar.pro",
+            to: ownerEmail,
+            subject: `📅 Nueva Reserva - ${eventTitle}`,
+            html: ownerNotificationContent,
+          }),
+        });
+
+        if (!ownerEmailResponse.ok) {
+          const error = await ownerEmailResponse.text();
+          console.error(`Failed to send owner notification: ${error}`);
+        } else {
+          console.log("✓ Owner notification sent successfully");
+        }
       }
 
       // Enviar emails a invitados adicionales (solo notificación, sin botones)
