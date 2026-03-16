@@ -50,6 +50,51 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
         .update({ slot_datetime: selectedSlot.datetime, status: 'rescheduled' })
         .eq('id', booking.id)
 
+      // Obtener email del owner
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('user_id, location_url')
+        .eq('id', event.id)
+        .single()
+
+      if (eventData) {
+        const { data: ownerData } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', eventData.user_id)
+          .single()
+
+        if (ownerData) {
+          // Enviar email de reprogramación
+          try {
+            await fetch(
+              'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZ2dhaHFmYXBvenlnYWprbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjM1NzEsImV4cCI6MjA4OTIzOTU3MX0.dhtfPeaINYmdMEDKm8t1g-fAQi_3G3OUwOaTl2f-0dw`,
+                },
+                body: JSON.stringify({
+                  ownerEmail: ownerData.email,
+                  attendeeName: booking.attendee_name,
+                  attendeeEmail: booking.attendee_email,
+                  slot: selectedSlot.datetime,
+                  eventTitle: event.title,
+                  eventId: event.id,
+                  locationUrl: eventData.location_url,
+                  type: 'reschedule',
+                  reason: reason.trim(),
+                  oldSlot: booking.slot_datetime,
+                }),
+              }
+            )
+          } catch (emailErr) {
+            console.error('Error sending reschedule email:', emailErr)
+          }
+        }
+      }
+
       toast.success('Reserva reprogramada. Se envió notificación.')
       onUpdated()
       onClose()
@@ -86,6 +131,49 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
           cancelled_at: new Date().toISOString(),
         })
         .eq('id', booking.id)
+
+      // Obtener email del owner
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('user_id')
+        .eq('id', event.id)
+        .single()
+
+      if (eventData) {
+        const { data: ownerData } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', eventData.user_id)
+          .single()
+
+        if (ownerData) {
+          // Enviar email de cancelación
+          try {
+            await fetch(
+              'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZ2dhaHFmYXBvenlnYWprbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjM1NzEsImV4cCI6MjA4OTIzOTU3MX0.dhtfPeaINYmdMEDKm8t1g-fAQi_3G3OUwOaTl2f-0dw`,
+                },
+                body: JSON.stringify({
+                  ownerEmail: ownerData.email,
+                  attendeeName: booking.attendee_name,
+                  attendeeEmail: booking.attendee_email,
+                  eventTitle: event.title,
+                  eventId: event.id,
+                  type: 'cancel',
+                  reason: reason.trim(),
+                  slot: booking.slot_datetime,
+                }),
+              }
+            )
+          } catch (emailErr) {
+            console.error('Error sending cancel email:', emailErr)
+          }
+        }
+      }
 
       toast.success('Reserva cancelada. Se envió notificación.')
       onUpdated()
