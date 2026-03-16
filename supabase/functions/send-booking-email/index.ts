@@ -69,9 +69,9 @@ serve(async (req: Request) => {
     }
 
     if (!RESEND_API_KEY) {
-      console.error("RESEND_API_KEY not configured");
+      console.error("RESEND_API_KEY not configured in Supabase Vault");
       return new Response(
-        JSON.stringify({ error: "RESEND_API_KEY not configured" }),
+        JSON.stringify({ error: "Email service not configured. Please add RESEND_API_KEY to Supabase Vault." }),
         { 
           status: 500, 
           headers: { 
