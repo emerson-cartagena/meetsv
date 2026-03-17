@@ -21,9 +21,10 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
-          npm install -g supabase@latest
-        env:
-          npm_config_legacy_peer_deps: true
+          curl -fsSL https://github.com/supabase/cli/releases/download/v1.191.3/supabase_linux_amd64 -o supabase
+          chmod +x supabase
+          sudo mv supabase /usr/local/bin/
+          supabase --version
 
       - name: Deploy Edge Functions
         run: |

@@ -1,5 +1,5 @@
 // Edge Function: Send booking confirmation and notification emails
-// Version: 1.2.0 - Supports cancellation reasons and email notifications
+// Version: 1.2.1 - Uses direct CLI binary installation
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
