@@ -130,9 +130,9 @@ function getEmailTemplate(
       <a href="${data.cancelLink}" style="${buttonStyle} background-color: #dc3545; color: white;">Cancelar Reunión</a>
     </div>
     ` : ""}
-    
+
     <p style="margin-top: 32px; color: #666; font-size: 13px;">
-      Si tienes preguntas, contacta con el organizador.
+      ${data.reason ? `<strong>Motivo:</strong> ${data.reason}` : "Si tienes preguntas sobre esta reunión, contáctate con el organizador."}
     </p>
     
     <p style="margin-top: 24px; color: #999; font-size: 12px;">
@@ -158,12 +158,9 @@ function getEmailTemplate(
     
     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
       <p style="margin: 8px 0;"><strong>Fecha y Hora:</strong> ${data.formattedSlot}</p>
+      ${data.reason ? `<p style="margin: 8px 0;"><strong>Motivo:</strong> ${data.reason}</p>` : ""}
     </div>
-    
-    <p style="margin-top: 32px; color: #666; font-size: 13px;">
-      Si tienes preguntas, contacta con el organizador.
-    </p>
-    
+
     <p style="margin-top: 24px; color: #999; font-size: 12px;">
       © 2026 MyCalendar. Todos los derechos reservados.
     </p>
