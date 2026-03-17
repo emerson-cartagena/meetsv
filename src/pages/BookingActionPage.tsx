@@ -22,6 +22,7 @@ export default function BookingActionPage() {
   const [slots, setSlots] = useState<Slot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [rescheduling, setRescheduling] = useState(false)
+  const [rescheduleToken, setRescheduleToken] = useState<string | null>(null)
   
   const [cancellationReason, setCancellationReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
@@ -76,6 +77,7 @@ export default function BookingActionPage() {
       } else if (action === 'reschedule') {
         // Preparar para reprogramar: obtener evento y slots
         setBooking(data.booking)
+        setRescheduleToken(data.token) // Guardar el token para usarlo después
         
         const { data: eventData } = await supabase
           .from('events')
@@ -115,6 +117,14 @@ export default function BookingActionPage() {
     try {
       setRescheduling(true)
       setError(null)
+
+      // Marcar el token como usado AHORA que se confirma el cambio
+      if (rescheduleToken) {
+        await supabase
+          .from('booking_tokens')
+          .update({ used_at: new Date().toISOString() })
+          .eq('token', rescheduleToken)
+      }
 
       // Actualizar la reserva con el nuevo slot
       const { error: updateError } = await supabase

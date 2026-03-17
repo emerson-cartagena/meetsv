@@ -287,22 +287,11 @@ serve(async (req: Request) => {
     }
 
     if (action === "reschedule") {
-      // Para reschedule, marcar token como usado y retornar datos para que el frontend maneje
-      console.log("Processing reschedule action");
-      
-      // Marcar token como usado
-      const { error: updateTokenError } = await supabase
-        .from("booking_tokens")
-        .update({ used_at: new Date().toISOString() })
-        .eq("id", tokenData.id);
+      // Para reschedule, NO marcar como usado aún - el usuario debe confirmar el cambio de hora
+      // El token se marcará como usado cuando se confirme la rescheduling en el frontend
+      console.log("Processing reschedule action - token will be marked as used on confirmation");
 
-      if (updateTokenError) {
-        console.error("Error marking token as used:", updateTokenError);
-      } else {
-        console.log("✓ Token marked as used for reschedule");
-      }
-
-      // (el usuario necesita seleccionar la nueva fecha)
+      // Retornar datos del booking para que el frontend maneje la selección de nueva fecha
       console.log("Returning booking data for reschedule");
       return new Response(
         JSON.stringify({
@@ -311,6 +300,7 @@ serve(async (req: Request) => {
           booking_id: booking.id,
           event_id: booking.event_id,
           old_slot: booking.slot_datetime,
+          token: token,
           attendee_name: booking.attendee_name,
           attendee_email: booking.attendee_email,
           extra_guests: booking.extra_guests,
