@@ -67,6 +67,13 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
         created_by: user!.id,
       })
 
+      // Marcar TODOS los tokens de esta booking como usados
+      await supabase
+        .from('booking_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('booking_id', booking.id)
+        .is('used_at', null)
+
       // Actualizar la reserva
       await supabase
         .from('bookings')
@@ -148,6 +155,13 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
         reason: reason.trim(),
         created_by: user!.id,
       })
+
+      // Marcar TODOS los tokens de esta booking como usados
+      await supabase
+        .from('booking_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('booking_id', booking.id)
+        .is('used_at', null)
 
       // Cancelar la reserva
       await supabase
