@@ -399,9 +399,9 @@ serve(async (req: Request) => {
         console.error("❌ Error generating new tokens:", tokenError);
       }
 
-      // Enviar SOLO 1 correo al OWNER con los nuevos tokens
-      const ownerEmailContent = getEmailTemplate("reschedule", {
-        attendeeName: `${attendeeName} (${attendeeEmail})`,
+      // Enviar correo al ATTENDEE con los botones (puede reprogramar/cancelar nuevamente)
+      const attendeeEmailContent = getEmailTemplate("reschedule", {
+        attendeeName,
         eventTitle,
         formattedSlot: formattedNewSlot,
         locationUrl,
@@ -409,7 +409,34 @@ serve(async (req: Request) => {
         rescheduleLink,
         oldSlot: formattedOldSlot,
         newSlot: formattedNewSlot,
-        reason: `${attendeeName} ha reprogramado la reunión`,
+      });
+
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "My Calendar <noreply@mycalendar.pro>",
+          to: attendeeEmail,
+          subject: `Reserva Reprogramada - ${eventTitle}`,
+          html: attendeeEmailContent,
+        }),
+      }).then(res => {
+        if (res.ok) {
+          console.log("✓ Email sent to attendee");
+        } else {
+          console.error("❌ Failed to send email to attendee");
+        }
+      });
+
+      // Enviar notificación al OWNER SIN botones (solo información)
+      const ownerNotificationContent = getEmailTemplate("guest-notification", {
+        attendeeName: `${attendeeName} ha reprogramado la reunión`,
+        eventTitle,
+        formattedSlot: formattedNewSlot,
+        locationUrl,
       });
 
       await fetch("https://api.resend.com/emails", {
@@ -422,13 +449,13 @@ serve(async (req: Request) => {
           from: "My Calendar <noreply@mycalendar.pro>",
           to: ownerEmail,
           subject: `Reserva Reprogramada - ${eventTitle}`,
-          html: ownerEmailContent,
+          html: ownerNotificationContent,
         }),
       }).then(res => {
         if (res.ok) {
-          console.log("✓ Email sent to owner");
+          console.log("✓ Owner notification sent");
         } else {
-          console.error("❌ Failed to send email to owner");
+          console.error("❌ Failed to send owner notification");
         }
       });
 
