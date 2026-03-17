@@ -276,21 +276,11 @@ export default function BookingWidget({ event, slots, onBooked, embedded = false
   }
 
   /* ── Selección de slot ── */
-  const available = slots.filter(s => s.available).length
   return (
     <div className="space-y-6">
       <EventHeader event={event} />
 
       <div className="card">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h2 className="font-semibold text-gray-800">
-            Horarios disponibles
-          </h2>
-          <span className="text-sm text-gray-500">
-            {available} de {slots.length} disponibles
-          </span>
-        </div>
-
         {slots.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-6">No hay horarios para este evento.</p>
         ) : (

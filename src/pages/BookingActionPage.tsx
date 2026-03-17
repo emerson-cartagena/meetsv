@@ -22,6 +22,10 @@ export default function BookingActionPage() {
   const [slots, setSlots] = useState<Slot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [rescheduling, setRescheduling] = useState(false)
+  
+  const [cancellationReason, setCancellationReason] = useState('')
+  const [cancelConfirmed, setCancelConfirmed] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
     if (!token || !action) {
@@ -66,8 +70,7 @@ export default function BookingActionPage() {
       }
 
       if (action === 'cancel') {
-        // Cancelación completada
-        setSuccess(true)
+        // Preparar para cancelación: guardar booking pero no confirmar aún
         setBooking(data.booking)
         setLoading(false)
       } else if (action === 'reschedule') {
@@ -186,7 +189,89 @@ export default function BookingActionPage() {
     }
   }
 
-  // ── LOADING ──
+  async function handleCancelConfirm(e: React.FormEvent) {
+    e.preventDefault()
+    
+    if (!cancellationReason.trim() || !booking || !token) return
+
+    try {
+      setCancelling(true)
+      setError(null)
+
+      // Enviar razón de cancelación a la Edge Function
+      const response = await fetch(
+        'https://vrggahqfapozygajklaj.functions.supabase.co/handle-booking-token',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            token,
+            action: 'cancel',
+            reason: cancellationReason,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        setError('Error al procesar la cancelación.')
+        setCancelling(false)
+        return
+      }
+
+      // Obtener datos del evento para notificación
+      try {
+        const { data: eventData } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', booking.event_id)
+          .single()
+
+        if (eventData) {
+          const { data: ownerData } = await supabase
+            .from('users')
+            .select('email, full_name')
+            .eq('id', eventData.user_id)
+            .single()
+
+          if (ownerData) {
+            // Enviar notificación de cancelación
+            await fetch(
+              'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({
+                  ownerEmail: ownerData.email,
+                  ownerName: ownerData.full_name || 'Organizador',
+                  attendeeName: booking.attendee_name,
+                  attendeeEmail: booking.attendee_email,
+                  eventTitle: eventData.title,
+                  bookingId: booking.id,
+                  type: 'cancel',
+                  reason: cancellationReason,
+                  originatedFrom: 'attendee',
+                }),
+              }
+            )
+          }
+        }
+      } catch (emailErr) {
+        console.error('Error sending cancellation notification:', emailErr)
+      }
+
+      setSuccess(true)
+      setCancelling(false)
+    } catch (err) {
+      console.error('Error cancelando:', err)
+      setError('Error procesando tu solicitud.')
+      setCancelling(false)
+    }
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex items-center justify-center px-4">
@@ -250,6 +335,89 @@ export default function BookingActionPage() {
           <p className="text-gray-600 text-sm text-center mb-6">
             Se ha enviado una confirmación de cancelación a tu correo.
           </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── CANCELLATION FORM ──
+  if (action === 'cancel' && booking && !cancelConfirmed && !success) {
+    if (cancelling) {
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cancelando reserva...</p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex items-center justify-center px-4 py-8">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          
+          <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">
+            Cancelar Reserva
+          </h1>
+          
+          <p className="text-gray-600 text-center mb-6">
+            ¿Está seguro que desea cancelar esta reserva?
+          </p>
+
+          {booking && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <span>{formatSlotDateTime(booking.slot_datetime, true)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <User className="w-4 h-4 text-gray-500" />
+                <span>{booking.attendee_name}</span>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleCancelConfirm} className="space-y-4">
+            <div>
+              <label htmlFor="reason" className="block text-sm font-semibold text-gray-800 mb-2">
+                Razón de cancelación <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="reason"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                rows={3}
+                placeholder="Cuéntanos por qué necesitas cancelar. Esto nos ayuda a mejorar..."
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={!cancellationReason.trim() || cancelling}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                {cancelling ? 'Cancelando...' : 'Confirmar Cancelación'}
+              </button>
+              <button
+                type="button"
+                onClick={() => window.close()}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Cerrar
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     )
