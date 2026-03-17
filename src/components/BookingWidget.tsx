@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { Clock, Link2, Plus, X, CheckCircle2 } from 'lucide-react'
+import { Clock, Link2, Plus, X, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
@@ -213,11 +213,15 @@ export default function BookingWidget({ event, slots, onBooked, embedded = false
 
         <div className="card space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800">Confirmar reserva</h2>
+            <button onClick={() => { setStep('select-slot'); setSelected(null) }} className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 transition-colors">
+              <ArrowLeft size={16} /> Volver a horarios
+            </button>
             <button onClick={() => { setStep('select-slot'); setSelected(null) }} className="text-gray-400 hover:text-gray-600">
               <X size={18} />
             </button>
           </div>
+
+          <h2 className="font-semibold text-gray-800">Confirmar reserva</h2>
 
           <div className="bg-primary-50 rounded-lg px-4 py-3 text-sm text-primary-800 font-medium">
             {format(parseISO(selected.datetime), "EEEE d 'de' MMMM · h:mm aa", { locale: es })}
@@ -276,15 +280,16 @@ export default function BookingWidget({ event, slots, onBooked, embedded = false
   }
 
   /* ── Selección de slot ── */
+  const availableSlots = slots.filter(s => s.available)
   return (
     <div className="space-y-6">
       <EventHeader event={event} />
 
       <div className="card">
-        {slots.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-6">No hay horarios para este evento.</p>
+        {availableSlots.length === 0 ? (
+          <p className="text-gray-500 text-sm text-center py-6">No hay horarios disponibles en este momento.</p>
         ) : (
-          <SlotGrid slots={slots} onSelect={handleSelectSlot} />
+          <SlotGrid slots={availableSlots} onSelect={handleSelectSlot} />
         )}
       </div>
     </div>
