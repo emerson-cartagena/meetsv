@@ -157,37 +157,29 @@ export default function BookingActionPage() {
       try {
         const { data: ownerData } = await supabase
           .from('users')
-          .select('email, full_name')
+          .select('email')
           .eq('id', event.user_id)
           .single()
 
         if (ownerData) {
-          await fetch(
-            'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              },
-              body: JSON.stringify({
-                ownerEmail: ownerData.email,
-                ownerName: ownerData.full_name || 'Organizador',
-                attendeeName: booking.attendee_name,
-                attendeeEmail: booking.attendee_email,
-                eventTitle: event.title,
-                bookingId: booking.id,
-                slot: selectedSlot,
-                locationUrl: event.location_url,
-                type: 'reschedule',
-                oldSlot: booking.slot_datetime,
-                newSlot: selectedSlot,
-                originatedFrom: 'attendee',
-                extraGuests: booking.extra_guests,
-                reason: rescheduleReason,
-              }),
-            }
-          )
+          await supabase.functions.invoke('send-booking-email', {
+            body: {
+              ownerEmail: ownerData.email,
+              ownerName: 'Organizador',
+              attendeeName: booking.attendee_name,
+              attendeeEmail: booking.attendee_email,
+              eventTitle: event.title,
+              bookingId: booking.id,
+              slot: selectedSlot,
+              locationUrl: event.location_url,
+              type: 'reschedule',
+              oldSlot: booking.slot_datetime,
+              newSlot: selectedSlot,
+              originatedFrom: 'attendee',
+              extraGuests: booking.extra_guests,
+              reason: rescheduleReason,
+            },
+          })
         }
       } catch (emailErr) {
         console.error('Error sending reschedule notification:', emailErr)
@@ -239,43 +231,34 @@ export default function BookingActionPage() {
       try {
         const { data: eventData } = await supabase
           .from('events')
-          .select('*')
+          .select('user_id, title, location_url')
           .eq('id', booking.event_id)
           .single()
 
         if (eventData) {
           const { data: ownerData } = await supabase
             .from('users')
-            .select('email, full_name')
+            .select('email')
             .eq('id', eventData.user_id)
             .single()
 
           if (ownerData) {
-            // UNA SOLA LLAMADA al endpoint con toda la información
-            await fetch(
-              'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                },
-                body: JSON.stringify({
-                  ownerEmail: ownerData.email,
-                  ownerName: ownerData.full_name || 'Organizador',
-                  attendeeName: booking.attendee_name,
-                  attendeeEmail: booking.attendee_email,
-                  eventTitle: eventData.title,
-                  bookingId: booking.id,
-                  slot: booking.slot_datetime,
-                  locationUrl: eventData.location_url,
-                  type: 'cancel',
-                  originatedFrom: 'attendee',
-                  extraGuests: booking.extra_guests,
-                  reason: cancellationReason,
-                }),
-              }
-            )
+            await supabase.functions.invoke('send-booking-email', {
+              body: {
+                ownerEmail: ownerData.email,
+                ownerName: 'Organizador',
+                attendeeName: booking.attendee_name,
+                attendeeEmail: booking.attendee_email,
+                eventTitle: eventData.title,
+                bookingId: booking.id,
+                slot: booking.slot_datetime,
+                locationUrl: eventData.location_url,
+                type: 'cancel',
+                originatedFrom: 'attendee',
+                extraGuests: booking.extra_guests,
+                reason: cancellationReason,
+              },
+            })
           }
         }
       } catch (emailErr) {
