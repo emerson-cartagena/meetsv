@@ -232,7 +232,33 @@ function getEmailTemplate(
   </div>
 </body>
 </html>`;
-  } else if (type === "owner-booking-notification") {
+  } else if (type === "owner-cancel-notification") {
+    // Email para notificar al owner de cancelación sin botones
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="${baseStyles}">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #dc3545; margin-bottom: 24px;">Cancelación de Reserva</h2>
+    
+    <p>Hola,</p>
+    
+    <p><strong>${data.attendeeName}</strong> ha cancelado la reunión <strong>${data.eventTitle}</strong>.</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
+      <p style="margin: 8px 0;"><strong>Fecha y Hora:</strong> ${data.formattedSlot}</p>
+    </div>
+    
+    <p style="margin-top: 32px; color: #666; font-size: 13px;">
+      Gestiona esta reserva desde tu panel de control.
+    </p>
+    
+    <p style="margin-top: 24px; color: #999; font-size: 12px;">
+      © 2026 MyCalendar. Todos los derechos reservados.
+    </p>
     // Email para notificar al owner de nueva reserva
     return `<!DOCTYPE html>
 <html>
@@ -525,6 +551,111 @@ serve(async (req: Request) => {
         JSON.stringify({ 
           success: true, 
           message: "Reschedule notifications sent",
+        }),
+        { 
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    // CANCELACIÓN ORIGINADA DEL ATTENDEE
+    if (originatedFrom === "attendee" && type === "cancel") {
+      console.log("🔴 Attendee-initiated cancellation");
+
+      // Construir el contenido del email de cancelación
+      const cancelEmailContent = getEmailTemplate("cancel", {
+        attendeeName,
+        eventTitle,
+        formattedSlot,
+        locationUrl,
+      });
+
+      // Enviar correo al ATTENDEE
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "My Calendar <noreply@mycalendar.pro>",
+          to: attendeeEmail,
+          subject: `Reserva Cancelada - ${eventTitle}`,
+          html: cancelEmailContent,
+        }),
+      }).then(res => {
+        if (res.ok) {
+          console.log("✓ Cancellation email sent to attendee");
+        } else {
+          console.error("❌ Failed to send cancellation email to attendee");
+        }
+      });
+
+      // Enviar notificación al OWNER SIN botones
+      const ownerCancelContent = getEmailTemplate("owner-cancel-notification", {
+        attendeeName,
+        eventTitle,
+        formattedSlot,
+      });
+
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "My Calendar <noreply@mycalendar.pro>",
+          to: ownerEmail,
+          subject: `Reserva Cancelada - ${eventTitle}`,
+          html: ownerCancelContent,
+        }),
+      }).then(res => {
+        if (res.ok) {
+          console.log("✓ Owner cancellation notification sent");
+        } else {
+          console.error("❌ Failed to send owner cancellation notification");
+        }
+      });
+
+      // Enviar notificación a invitados
+      if (extraGuests && extraGuests.length > 0) {
+        for (const guestEmail of extraGuests) {
+          const guestCancelContent = getEmailTemplate("guest-notification", {
+            attendeeName,
+            eventTitle,
+            formattedSlot,
+            locationUrl,
+          });
+
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+            },
+            body: JSON.stringify({
+              from: "My Calendar <noreply@mycalendar.pro>",
+              to: guestEmail,
+              subject: `Cancelación de Reunión - ${eventTitle}`,
+              html: guestCancelContent,
+            }),
+          }).then(res => {
+            if (res.ok) {
+              console.log(`✓ Cancellation notification sent to ${guestEmail}`);
+            }
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Cancellation notifications sent",
         }),
         { 
           status: 200,

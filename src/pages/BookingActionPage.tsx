@@ -25,6 +25,7 @@ export default function BookingActionPage() {
   const [rescheduleToken, setRescheduleToken] = useState<string | null>(null)
   
   const [cancellationReason, setCancellationReason] = useState('')
+  const [cancellationToken, setCancellationToken] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
   const [rescheduleReason, setRescheduleReason] = useState('')
 
@@ -73,6 +74,7 @@ export default function BookingActionPage() {
       if (action === 'cancel') {
         // Preparar para cancelación: guardar booking pero no confirmar aún
         setBooking(data.booking)
+        setCancellationToken(data.token)
         setLoading(false)
       } else if (action === 'reschedule') {
         // Preparar para reprogramar: obtener evento y slots
@@ -204,31 +206,31 @@ export default function BookingActionPage() {
   async function handleCancelConfirm(e: React.FormEvent) {
     e.preventDefault()
     
-    if (!cancellationReason.trim() || !booking || !token) return
+    if (!cancellationReason.trim() || !booking || !cancellationToken) return
 
     try {
       setCancelling(true)
       setError(null)
 
-      // Enviar razón de cancelación a la Edge Function
-      const response = await fetch(
-        'https://vrggahqfapozygajklaj.functions.supabase.co/handle-booking-token',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            token,
-            action: 'cancel',
-            reason: cancellationReason,
-          }),
-        }
-      )
+      // Marcar TODOS los tokens de esta booking como usados
+      await supabase
+        .from('booking_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('booking_id', booking.id)
+        .is('used_at', null)
 
-      if (!response.ok) {
-        setError('Error al procesar la cancelación.')
+      // Cancelar la booking
+      const { error: cancelError } = await supabase
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          cancelled_reason: cancellationReason,
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq('id', booking.id)
+
+      if (cancelError) {
+        setError('Error al cancelar la reserva.')
         setCancelling(false)
         return
       }
@@ -249,7 +251,7 @@ export default function BookingActionPage() {
             .single()
 
           if (ownerData) {
-            // Enviar notificación de cancelación
+            // UNA SOLA LLAMADA al endpoint con toda la información
             await fetch(
               'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
               {
@@ -265,9 +267,12 @@ export default function BookingActionPage() {
                   attendeeEmail: booking.attendee_email,
                   eventTitle: eventData.title,
                   bookingId: booking.id,
+                  slot: booking.slot_datetime,
+                  locationUrl: eventData.location_url,
                   type: 'cancel',
-                  reason: cancellationReason,
                   originatedFrom: 'attendee',
+                  extraGuests: booking.extra_guests,
+                  reason: cancellationReason,
                 }),
               }
             )
