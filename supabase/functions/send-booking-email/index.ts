@@ -259,6 +259,10 @@ function getEmailTemplate(
     <p style="margin-top: 24px; color: #999; font-size: 12px;">
       © 2026 MyCalendar. Todos los derechos reservados.
     </p>
+  </div>
+</body>
+</html>`;
+  } else if (type === "owner-booking-notification") {
     // Email para notificar al owner de nueva reserva
     return `<!DOCTYPE html>
 <html>
