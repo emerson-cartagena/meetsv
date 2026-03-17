@@ -20,7 +20,11 @@ jobs:
           node-version: '20'
 
       - name: Install Supabase CLI
-        run: npm install -g supabase
+        run: |
+          curl -fsSL https://deb.supabase.com/key.asc | sudo apt-key add -
+          echo "deb [arch=amd64] https://deb.supabase.com $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/supabase.list
+          sudo apt-get update
+          sudo apt-get install -y supabase
 
       - name: Deploy Edge Functions
         run: |
