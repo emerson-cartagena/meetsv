@@ -201,7 +201,38 @@ function getEmailTemplate(
   </div>
 </body>
 </html>`;
-  } else if (type === "owner-booking-notification") {
+  } else if (type === "owner-reschedule-notification") {
+    // Email para notificar al owner de reprogramación sin botones
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="${baseStyles}">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #2c3e50; margin-bottom: 24px;">Cambio de Horario</h2>
+    
+    <p>Hola,</p>
+    
+    <p><strong>${data.attendeeName}</strong> ha reprogramado la reunión <strong>${data.eventTitle}</strong>.</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
+      <p style="margin: 8px 0;"><strong>Horario anterior:</strong> ${data.oldSlot}</p>
+      <p style="margin: 8px 0; color: #28a745;"><strong>Nuevo horario:</strong> ${data.newSlot}</p>
+    </div>
+    
+    <p style="margin-top: 32px; color: #666; font-size: 13px;">
+      Gestiona esta reserva desde tu panel de control.
+    </p>
+    
+    <p style="margin-top: 24px; color: #999; font-size: 12px;">
+      © 2026 MyCalendar. Todos los derechos reservados.
+    </p>
+  </div>
+</body>
+</html>`;
+  }
     // Email para notificar al owner de nueva reserva
     return `<!DOCTYPE html>
 <html>
@@ -431,12 +462,13 @@ serve(async (req: Request) => {
         }
       });
 
-      // Enviar notificación al OWNER SIN botones (solo información)
-      const ownerNotificationContent = getEmailTemplate("guest-notification", {
-        attendeeName: `${attendeeName} ha reprogramado la reunión`,
+      // Enviar notificación al OWNER SIN botones (solo información: quién reprogramó, horarios)
+      const ownerNotificationContent = getEmailTemplate("owner-reschedule-notification", {
+        attendeeName,
         eventTitle,
         formattedSlot: formattedNewSlot,
-        locationUrl,
+        oldSlot: formattedOldSlot,
+        newSlot: formattedNewSlot,
       });
 
       await fetch("https://api.resend.com/emails", {
