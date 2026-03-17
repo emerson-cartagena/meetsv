@@ -236,12 +236,20 @@ serve(async (req: Request) => {
                     html: `
                       <!DOCTYPE html>
                       <html>
+                      <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                      </head>
                       <body style="font-family: Arial, sans-serif; color: #333;">
                         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                          <h2 style="color: #dc3545; margin-bottom: 24px;">Reunión Cancelada</h2>
+                          <h2 style="color: #dc3545; margin-bottom: 24px;">Cancelación de Reunión</h2>
+                          <p>Hola,</p>
                           <p>La reunión <strong>${eventData.title}</strong> ha sido cancelada.</p>
                           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
                           </div>
+                          <p style="margin-top: 32px; color: #666; font-size: 13px;">
+                            Si tienes preguntas, contacta con el organizador.
+                          </p>
                           <p style="margin-top: 24px; color: #999; font-size: 12px;">
                             © 2026 MyCalendar. Todos los derechos reservados.
                           </p>

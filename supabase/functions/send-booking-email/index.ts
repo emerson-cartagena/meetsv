@@ -71,15 +71,16 @@ function getEmailTemplate(
 </head>
 <body style="${baseStyles}">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #2c3e50; margin-bottom: 24px;">✓ Confirmación de Reserva</h2>
+    <h2 style="color: #2c3e50; margin-bottom: 24px;">Confirmación de Reserva</h2>
     
-    <p>Hola <strong>${data.attendeeName}</strong>,</p>
+    <p>Hola,</p>
     
     <p>Tu reserva ha sido confirmada para <strong>${data.eventTitle}</strong>.</p>
     
     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
-      <p style="margin: 8px 0;"><strong>📅 Fecha y Hora:</strong> ${data.formattedSlot}</p>
-      ${data.locationUrl ? `<p style="margin: 8px 0;"><strong>🔗 Enlace de Reunión:</strong> <a href="${data.locationUrl}" style="color: #0066cc;">${data.locationUrl}</a></p>` : ""}
+      <p style="margin: 8px 0;"><strong>Asistente:</strong> ${data.attendeeName}</p>
+      <p style="margin: 8px 0;"><strong>Fecha y Hora:</strong> ${data.formattedSlot}</p>
+      ${data.locationUrl ? `<p style="margin: 8px 0;"><strong>Enlace de Reunión:</strong> <a href="${data.locationUrl}" style="color: #0066cc;">${data.locationUrl}</a></p>` : ""}
     </div>
     
     <p><strong>Acciones:</strong></p>
@@ -108,17 +109,18 @@ function getEmailTemplate(
 </head>
 <body style="${baseStyles}">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #2c3e50; margin-bottom: 24px;">📅 Reserva Reprogramada</h2>
+    <h2 style="color: #2c3e50; margin-bottom: 24px;">Reserva Reprogramada</h2>
     
-    <p>Hola <strong>${data.attendeeName}</strong>,</p>
+    <p>Hola,</p>
     
     <p>Tu reserva para <strong>${data.eventTitle}</strong> ha sido reprogramada.</p>
     
     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 24px 0;">
-      <p style="margin: 8px 0; color: #666;"><strong>Fecha Anterior:</strong> ${data.oldSlot}</p>
-      <p style="margin: 8px 0; color: #27ae60;"><strong>✓ Nueva Fecha:</strong> ${data.newSlot}</p>
+      <p style="margin: 8px 0;"><strong>Asistente:</strong> ${data.attendeeName}</p>
+      <p style="margin: 8px 0;"><strong>Fecha Anterior:</strong> ${data.oldSlot}</p>
+      <p style="margin: 8px 0; color: #27ae60;"><strong>Nueva Fecha:</strong> ${data.newSlot}</p>
       ${data.reason ? `<p style="margin: 8px 0;"><strong>Motivo:</strong> ${data.reason}</p>` : ""}
-      ${data.locationUrl ? `<p style="margin: 8px 0;"><strong>🔗 Enlace:</strong> <a href="${data.locationUrl}" style="color: #0066cc;">${data.locationUrl}</a></p>` : ""}
+      ${data.locationUrl ? `<p style="margin: 8px 0;"><strong>Enlace:</strong> <a href="${data.locationUrl}" style="color: #0066cc;">${data.locationUrl}</a></p>` : ""}
     </div>
     
     <p style="margin-top: 32px; color: #666; font-size: 13px;">
@@ -161,7 +163,6 @@ function getEmailTemplate(
 </html>`;
   } else if (type === "guest-notification") {
     // Email para invitados adicionales (sin botones de acción)
-    // data.attendeeName aquí contiene el nombre de quien hizo la reserva
     return `<!DOCTYPE html>
 <html>
 <head>
