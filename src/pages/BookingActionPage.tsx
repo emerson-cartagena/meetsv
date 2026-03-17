@@ -272,6 +272,9 @@ export default function BookingActionPage() {
       setError('Error procesando tu solicitud.')
       setCancelling(false)
     }
+  }
+
+  // ── LOADING ──
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex items-center justify-center px-4">
