@@ -231,7 +231,6 @@ function getEmailTemplate(
   </div>
 </body>
 </html>`;
-  }
   } else if (type === "owner-reschedule-notification") {
     // Email para notificar al owner de reprogramación sin botones
     return `<!DOCTYPE html>
