@@ -8,7 +8,6 @@ import type { Booking, Event, Slot } from '../types'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 interface Props {
   booking: Booking
@@ -82,34 +81,26 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
 
       // Enviar email de reprogramación
       try {
-        const emailRes = await fetch(
-          'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              ownerEmail: user!.email,
-              ownerName: 'Organizador',
-              attendeeName: booking.attendee_name,
-              attendeeEmail: booking.attendee_email,
-              eventTitle: event.title,
-              bookingId: booking.id,
-              locationUrl: event.location_url,
-              type: 'reschedule',
-              reason: reason.trim(),
-              oldSlot: booking.slot_datetime,
-              newSlot: selectedSlot.datetime,
-              slot: selectedSlot.datetime,
-              originatedFrom: 'owner',
-              extraGuests: booking.extra_guests,
-            }),
-          }
-        )
-        const emailData = await emailRes.json()
-        console.log('📧 Email response:', emailRes.status, emailData)
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-booking-email', {
+          body: {
+            ownerEmail: user!.email,
+            ownerName: 'Organizador',
+            attendeeName: booking.attendee_name,
+            attendeeEmail: booking.attendee_email,
+            eventTitle: event.title,
+            bookingId: booking.id,
+            locationUrl: event.location_url,
+            type: 'reschedule',
+            reason: reason.trim(),
+            oldSlot: booking.slot_datetime,
+            newSlot: selectedSlot.datetime,
+            slot: selectedSlot.datetime,
+            originatedFrom: 'owner',
+            extraGuests: booking.extra_guests,
+          },
+        })
+        if (emailError) console.error('Error sending reschedule email:', emailError)
+        else console.log('📧 Reschedule email sent:', emailData)
       } catch (emailErr) {
         console.error('Error sending reschedule email:', emailErr)
       }
@@ -160,32 +151,24 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
 
       // Enviar email de cancelación
       try {
-        const emailRes = await fetch(
-          'https://vrggahqfapozygajklaj.functions.supabase.co/send-booking-email',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              ownerEmail: user!.email,
-              ownerName: 'Organizador',
-              attendeeName: booking.attendee_name,
-              attendeeEmail: booking.attendee_email,
-              eventTitle: event.title,
-              bookingId: booking.id,
-              locationUrl: event.location_url,
-              type: 'cancel',
-              reason: reason.trim(),
-              slot: booking.slot_datetime,
-              originatedFrom: 'owner',
-              extraGuests: booking.extra_guests,
-            }),
-          }
-        )
-        const emailData = await emailRes.json()
-        console.log('📧 Email response:', emailRes.status, emailData)
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-booking-email', {
+          body: {
+            ownerEmail: user!.email,
+            ownerName: 'Organizador',
+            attendeeName: booking.attendee_name,
+            attendeeEmail: booking.attendee_email,
+            eventTitle: event.title,
+            bookingId: booking.id,
+            locationUrl: event.location_url,
+            type: 'cancel',
+            reason: reason.trim(),
+            slot: booking.slot_datetime,
+            originatedFrom: 'owner',
+            extraGuests: booking.extra_guests,
+          },
+        })
+        if (emailError) console.error('Error sending cancel email:', emailError)
+        else console.log('📧 Cancel email sent:', emailData)
       } catch (emailErr) {
         console.error('Error sending cancel email:', emailErr)
       }
