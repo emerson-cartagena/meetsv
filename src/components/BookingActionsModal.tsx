@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Calendar, Trash2 } from 'lucide-react'
+import { X, Calendar, MoreVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -248,7 +248,7 @@ export default function BookingActionsModal({ booking, event, otherBookings, onC
                 onClick={() => setAction('cancel')}
                 className="w-full py-2.5 px-3 rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 font-medium text-sm flex items-center justify-center gap-2"
               >
-                <Trash2 size={16} /> Más opciones
+                <MoreVertical size={16} /> Más opciones
               </button>
             </div>
           )}
