@@ -225,10 +225,9 @@ export default function BookingActionPage() {
                     bookingId: booking.id,
                     slot: selectedSlot,
                     locationUrl: event.location_url,
-                    type: 'reschedule',
+                    type: 'guest-notification',
                     oldSlot: booking.slot_datetime,
                     newSlot: selectedSlot,
-                    originatedFrom: 'attendee',
                     reason: rescheduleReason,
                   }),
                 }

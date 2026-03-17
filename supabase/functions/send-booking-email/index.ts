@@ -87,8 +87,8 @@ function getEmailTemplate(
     
     <p><strong>Acciones:</strong></p>
     <div style="margin: 24px 0;">
-      <a href="${data.cancelLink}" style="${buttonStyle} background-color: #dc3545; color: white;">Cancelar Reserva</a>
       <a href="${data.rescheduleLink}" style="${buttonStyle} background-color: #ffc107; color: #333;">Reprogramar</a>
+      <a href="${data.cancelLink}" style="${buttonStyle} background-color: #dc3545; color: white;">Cancelar Reserva</a>
     </div>
     
     <p style="margin-top: 32px; color: #666; font-size: 13px;">
@@ -125,9 +125,11 @@ function getEmailTemplate(
       ${data.locationUrl ? `<p style="margin: 8px 0;"><strong>Enlace:</strong> <a href="${data.locationUrl}" style="color: #0066cc;">${data.locationUrl}</a></p>` : ""}
     </div>
     
-    <p style="margin-top: 32px; color: #666; font-size: 13px;">
-      Si necesitas otra fecha, <a href="${data.rescheduleLink}" style="color: #0066cc;">puedes reprogramar nuevamente aquí</a>.
-    </p>
+    <p><strong>Acciones:</strong></p>
+    <div style="margin: 24px 0;">
+      <a href="${data.rescheduleLink}" style="${buttonStyle} background-color: #ffc107; color: #333;">Reprogramar</a>
+      <a href="${data.cancelLink}" style="${buttonStyle} background-color: #dc3545; color: white;">Cancelar Reserva</a>
+    </div>
     
     <p style="margin-top: 24px; color: #999; font-size: 12px;">
       © 2026 MyCalendar. Todos los derechos reservados.
@@ -311,6 +313,32 @@ serve(async (req: Request) => {
       minute: "2-digit",
     });
 
+    // Formatear oldSlot y newSlot si existen
+    let formattedOldSlot = "";
+    let formattedNewSlot = "";
+    if (oldSlot) {
+      const oldSlotDate = new Date(oldSlot);
+      formattedOldSlot = oldSlotDate.toLocaleDateString("es-SV", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    if (newSlot) {
+      const newSlotDate = new Date(newSlot);
+      formattedNewSlot = newSlotDate.toLocaleDateString("es-SV", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
     // Generar tokens seguros si es booking o owner reschedule
     let cancelLink = "";
     let rescheduleLink = "";
@@ -424,12 +452,12 @@ serve(async (req: Request) => {
         const ownerEmailContent = getEmailTemplate("reschedule", {
           attendeeName: `${attendeeName} (${attendeeEmail})`,
           eventTitle,
-          formattedSlot: newSlot || slot,
+          formattedSlot: formattedNewSlot || formattedSlot,
           locationUrl,
           cancelLink: ownerCancelLink,
           rescheduleLink: ownerRescheduleLink,
-          oldSlot,
-          newSlot: newSlot || slot,
+          oldSlot: formattedOldSlot || oldSlot,
+          newSlot: formattedNewSlot || newSlot || slot,
           reason: `${attendeeName} ha reprogramado la reserva`,
         });
 
