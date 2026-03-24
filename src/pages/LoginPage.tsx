@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Turnstile } from '@marsidev/react-turnstile'
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -10,11 +15,30 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileInstance>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    if (!turnstileToken) {
+      toast.error('Completa la verificación de seguridad')
+      return
+    }
+
     setLoading(true)
     try {
+      // Verificar token Turnstile en servidor
+      const { data, error } = await supabase.functions.invoke('verify-turnstile', {
+        body: { token: turnstileToken },
+      })
+
+      if (error || !data?.success) {
+        turnstileRef.current?.reset()
+        setTurnstileToken(null)
+        throw new Error('Verificación de seguridad fallida. Inténtalo de nuevo.')
+      }
+
       await login(email, password)
       toast.success('¡Sesión iniciada!')
       navigate('/dashboard')
@@ -65,10 +89,26 @@ export default function LoginPage() {
               />
             </div>
 
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => {
+                    setTurnstileToken(null)
+                    toast.error('Error en la verificación de seguridad')
+                  }}
+                  options={{ theme: 'light', language: 'es' }}
+                />
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-2.5"
+              disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+              className="btn-primary w-full py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
